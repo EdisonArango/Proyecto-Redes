@@ -16,31 +16,32 @@ import java.util.logging.Logger;
  * @author edisonarango
  */
 public class VentanaTermometro extends javax.swing.JFrame {
-
-    PanamaHitek_Arduino arduino = new PanamaHitek_Arduino();
-    public String puerto = "COM6";
-    SerialPortEventListener evento = new SerialPortEventListener() {
-
-        @Override
-        public void serialEvent(SerialPortEvent spe) {
-            if(arduino.MessageAvailable() == true){
-                System.out.println(arduino.printMessage());
-            }
-        }
-    };
+    Termometro termometro;
     /**
      * Creates new form Termometro
      */
     public VentanaTermometro() {
         initComponents();
         this.setLocationRelativeTo(null);
-        try {
-            arduino.ArduinoRXTX(puerto, 2000, 9600, null);
-        } catch (Exception ex) {
-            Logger.getLogger(VentanaTermometro.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        termometro = new Termometro(this);
+        termometro.start();
     }
-
+    
+    public void cambiarTemperatura (String temperatura){
+        if(Float.parseFloat(temperatura)<20){
+            this.temperatura.setForeground(new java.awt.Color(51, 51, 255));
+            imagen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/imagenes/termometer-cool.png")));
+        }
+        else if (Float.parseFloat(temperatura)>=20 && Float.parseFloat(temperatura)<=35){
+            this.temperatura.setForeground(new java.awt.Color(144, 61, 61));
+            imagen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/imagenes/termometer-normal.png")));
+        }
+        else{
+            this.temperatura.setForeground(new java.awt.Color(228, 23, 23));
+            imagen.setIcon(new javax.swing.ImageIcon(getClass().getResource("/imagenes/termometer-hot.png")));
+        }
+        this.temperatura.setText(temperatura);
+    }
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -58,13 +59,15 @@ public class VentanaTermometro extends javax.swing.JFrame {
         imagen = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("ZigBee Termometer");
 
         jPanel1.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(204, 204, 204)));
         jPanel1.setForeground(new java.awt.Color(204, 204, 204));
 
         temperatura.setFont(new java.awt.Font("Lucida Grande", 0, 110)); // NOI18N
         temperatura.setForeground(new java.awt.Color(51, 51, 255));
-        temperatura.setText("123,7");
+        temperatura.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        temperatura.setText("0");
 
         jLabel1.setFont(new java.awt.Font("Lucida Grande", 0, 100)); // NOI18N
         jLabel1.setText("º");
@@ -78,11 +81,11 @@ public class VentanaTermometro extends javax.swing.JFrame {
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(temperatura)
-                .addGap(18, 18, 18)
+                .addComponent(temperatura, javax.swing.GroupLayout.PREFERRED_SIZE, 283, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jLabel1)
-                .addGap(12, 12, 12)
-                .addComponent(jLabel2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 74, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(28, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
@@ -125,7 +128,7 @@ public class VentanaTermometro extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(imagen, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -175,4 +178,35 @@ public class VentanaTermometro extends javax.swing.JFrame {
     private javax.swing.JLabel temperatura;
     private javax.swing.JLabel titulo;
     // End of variables declaration//GEN-END:variables
+}
+
+class Termometro extends Thread{
+    
+    VentanaTermometro ventana;
+    PanamaHitek_Arduino arduino = new PanamaHitek_Arduino();
+    public String puerto = "COM10";
+    SerialPortEventListener evento = new SerialPortEventListener() {
+
+        @Override
+        public void serialEvent(SerialPortEvent spe) {
+            if(arduino.isMessageAvailable()== true){
+                String mensaje = arduino.printMessage();
+                System.out.println(mensaje);
+                ventana.cambiarTemperatura(mensaje);
+            }
+        }
+    };
+    
+    public Termometro (VentanaTermometro ventana){
+        this.ventana = ventana;
+    }
+    
+    @Override
+    public void run(){
+        try {
+            arduino.arduinoRXTX(puerto, 9600, evento);
+        } catch (Exception ex) {
+            Logger.getLogger(VentanaTermometro.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 }
